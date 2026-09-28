@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>마음 한 켠, 아침 필사 | 초등 학급 루틴</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#FDF8F5',
+              100: '#FBEFEA',
+              500: '#B85D43',
+              600: '#A44D35',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="selection:bg-amber-200">
+
+  <!-- ==========================================================
+       VIEW 1: 메인 화면 - 서재 탐색 & 책 선택 (Library View)
+       ========================================================== -->
+  <div id="mainLibraryView" class="transition-opacity duration-300">
+    
+    <!-- 글로벌 헤더 -->
+    <header class="no-print border-b border-stone-200/80 bg-white/80 backdrop-blur-md sticky top-0 z-30">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-4">
+        
+        <!-- 로고 및 오늘 날짜 -->
+        <div class="flex items-center gap-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-rose-400 to-amber-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20 select-none">
+            <i data-lucide="book-open" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-bold text-xl sm:text-2xl text-stone-800 tracking-tight">
+                마음 한 켠, 아침 필사
+              </h1>
+              <span id="currentDateBadge" class="hidden sm:inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                2026년 9월 28일
+              </span>
+            </div>
+            <p class="text-xs sm:text-sm text-stone-500 font-medium">
+              초등학교 아침 학급 루틴 · 마음을 가꾸는 깊은 독서와 긴 글 필사
+            </p>
+          </div>
+        </div>
+
+        <!-- 우측 상단 액션 바 -->
+        <div class="flex items-center gap-2">
+          <!-- BGM 토글 -->
+          <button id="bgmToggleBtn" class="touch-btn text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-2 rounded-xl transition-all">
+            <i data-lucide="music" class="w-4 h-4 text-amber-600"></i>
+            <span id="bgmBtnText" class="hidden md:inline">마음 BGM</span>
+          </button>
+
+          <!-- 지혜의 나무 바로가기 배지 -->
+          <a href="#treeSection" class="hidden lg:flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-2 rounded-xl hover:bg-emerald-100 transition-colors">
+            <span>🌳</span>
+            <span class="font-bold" id="headerTreeLeafCount">28장의 잎</span>
+            <span class="text-stone-400">·</span>
+            <span class="font-bold text-amber-700" id="headerTreeTemp">36.8℃</span>
+          </a>
+
+          <!-- 학생/교사 보물 책 추천하기 버튼 -->
+          <button onclick="app.openRecommendBookModal()" class="touch-btn text-xs sm:text-sm bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white font-semibold px-4 py-2 rounded-xl shadow-md shadow-amber-600/20 transition-all flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>보물 책 추천하기</span>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- [1. 메인 화면 - 학생 선호도 기반 태그 필터 바] -->
+    <section class="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-4">
+      <div class="mb-4">
+        <h2 class="text-xl sm:text-2xl font-bold text-stone-800 flex items-center gap-2">
+          <span>오늘 아침, 어떤 마음을 만나고 싶나요?</span>
+          <span class="text-2xl">📖</span>
+        </h2>
+        <p class="text-xs sm:text-sm text-stone-500 mt-1">
+          그날의 기분과 관심사에 맞는 태그를 골라보세요. 마음에 닿는 책의 깊은 문장이 기다리고 있어요.
+        </p>
+      </div>
+
+      <!-- 태그 스크롤 컨테이너 (아이패드 터치 스와이프 친화적) -->
+      <div id="preferenceTagContainer" class="tag-scroll-container">
+        <!-- 자바스크립트로 태그 렌더링 -->
+      </div>
+    </section>
+
+    <!-- [추천 책 & 긴 구절 탐색 카드 그리드] -->
+    <section class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-stone-200 text-stone-700" id="filteredCountBadge">
+            전체 8권
+          </span>
+          <span class="text-xs text-stone-400">원하는 카드를 선택하면 긴 글 필사 연습장으로 이동해요</span>
+        </div>
+      </div>
+
+      <!-- 카드 그리드 -->
+      <div id="bookCardGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- 자바스크립트로 카드 렌더링 -->
+      </div>
+    </section>
+
+    <!-- [4. 학급 공동체 & 동기부여 요소 - 지혜의 나무 & 필사 온도계] -->
+    <section id="treeSection" class="max-w-6xl mx-auto px-4 sm:px-6 py-12 border-t border-stone-200/80">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        
+        <!-- 좌측: 인터랙티브 SVG 지혜의 나무 -->
+        <div class="lg:col-span-7 paper-card p-6 sm:p-8 bg-gradient-to-b from-sky-50/50 to-emerald-50/50 border-emerald-100">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <span class="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                학급 공동체 게이지 🌳
+              </span>
+              <h3 class="text-xl font-bold text-stone-800 mt-1">우리 반 지혜의 나무</h3>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-stone-500 block">학급 필사 체온</span>
+              <span id="classTempNumber" class="text-2xl font-black text-amber-700">36.8℃</span>
+            </div>
+          </div>
+
+          <!-- 나무 SVG -->
+          <div class="bg-white/80 rounded-2xl p-2 border border-emerald-100/80 shadow-inner overflow-hidden relative">
+            <svg id="wisdomTreeSvg" viewBox="0 0 400 360" class="w-full h-64 sm:h-72">
+              <!-- JS 인터랙티브 렌더링 -->
+            </svg>
+            <div class="absolute bottom-2 left-3 text-[11px] text-stone-400">
+              🍃 필사를 제출할 때마다 나무에 푸른 잎과 탐스러운 열매가 맺혀요!
+            </div>
+          </div>
+
+          <!-- 통계 카드 -->
+          <div class="grid grid-cols-3 gap-3 mt-4 text-center">
+            <div class="bg-white/90 p-3 rounded-xl border border-stone-200">
+              <span class="text-xs text-stone-500 block">돋아난 잎사귀</span>
+              <span id="treeLeavesDisplay" class="text-lg font-bold text-emerald-700">28장</span>
+            </div>
+            <div class="bg-white/90 p-3 rounded-xl border border-stone-200">
+              <span class="text-xs text-stone-500 block">달콤한 열매</span>
+              <span id="treeFruitsDisplay" class="text-lg font-bold text-rose-600">6개</span>
+            </div>
+            <div class="bg-white/90 p-3 rounded-xl border border-stone-200">
+              <span class="text-xs text-stone-500 block">학급 목표 달성</span>
+              <span id="treeProgressPercent" class="text-lg font-bold text-amber-600">68%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 우측: 필사 온도계 & 최근 명예의 전당 카드 -->
+        <div class="lg:col-span-5 flex flex-col gap-5">
+          <!-- 필사 온도계 바 -->
+          <div class="paper-card p-6">
+            <div class="flex items-center justify-between text-xs text-stone-600 mb-2 font-bold">
+              <span class="flex items-center gap-1.5">
+                <span>🌡️</span> 우리 반 필사 열정 온도계
+              </span>
+              <span class="text-amber-700">목표 100℃</span>
+            </div>
+            <div class="w-full h-4 bg-stone-100 rounded-full overflow-hidden p-0.5 border border-stone-200">
+              <div id="classTempBar" class="h-full bg-gradient-to-r from-amber-400 via-rose-400 to-red-500 rounded-full transition-all duration-700" style="width: 38%;"></div>
+            </div>
+            <p class="text-xs text-stone-500 mt-2.5">
+              100℃ 달성 시 우리 반 모두에게 <strong class="text-amber-800">'황금빛 지혜의 학급 배지'</strong>가 수여됩니다! 🏆
+            </p>
+          </div>
+
+          <!-- 최근 제출된 친구들의 필사 갤러리 -->
+          <div class="paper-card p-6">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="font-bold text-sm text-stone-800 flex items-center gap-1.5">
+                <span>💌</span> 친구들이 방금 남긴 필사 카드
+              </h4>
+              <span class="text-xs text-stone-400">실시간 연동</span>
+            </div>
+            <div id="recentSubmissionsList" class="space-y-3">
+              <!-- JS로 렌더링 -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- [3. 이달의 추천 책 & 학생 추천 코너] -->
+    <section class="max-w-6xl mx-auto px-4 sm:px-6 py-10 border-t border-stone-200/80">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+          <span class="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
+            우리들의 추천 도서 🌟
+          </span>
+          <h3 class="text-xl sm:text-2xl font-bold text-stone-800 mt-1">
+            이달의 추천 책 & 학생 보물 상자
+          </h3>
+          <p class="text-xs sm:text-sm text-stone-500">
+            선생님의 따뜻한 큐레이션과 학생들이 직접 감동받아 올린 책들을 함께 만나보세요.
+          </p>
+        </div>
+
+        <button onclick="app.openRecommendBookModal()" class="touch-btn text-xs bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>나만의 보물 책 추천하기</span>
+        </button>
+      </div>
+
+      <div id="curationHighlightGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- JS로 렌더링 -->
+      </div>
+    </section>
+
+    <!-- 푸터 -->
+    <footer class="no-print border-t border-stone-200/80 py-8 text-center text-xs text-stone-400 mt-12 bg-white/40">
+      <p class="font-medium text-stone-500 mb-1">초등학교 아침 학급 루틴 · 마음 한 켠, 아침 필사 🌿</p>
+      <p>아이패드 & 태블릿 환경에 최적화된 따뜻한 독서 & 긴 글 필사 플랫폼입니다.</p>
+    </footer>
+
+  </div>
+
+
+  <!-- ==========================================================
+       VIEW 2: [2. 아이북 맞춤 '긴 글 필사 & 연습장' (Focus Mode)]
+       ========================================================== -->
+  <div id="focusModeView" class="hidden">
+    
+    <!-- 아이북 상단 플로팅 툴바 -->
+    <nav class="ibook-focus-bar sticky top-0 z-30 px-4 sm:px-6 py-3 transition-colors">
+      <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+        
+        <!-- 뒤로가기 버튼 & 책 타이틀 -->
+        <div class="flex items-center gap-3">
+          <button onclick="app.exitFocusMode()" class="touch-btn text-xs bg-stone-100 hover:bg-stone-200 text-stone-800 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 font-bold">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>서재로 돌아가기</span>
+          </button>
+
+          <div class="hidden sm:block">
+            <h2 id="focusBookTitle" class="text-base font-bold text-stone-800 leading-tight">『어린 왕자』</h2>
+            <p id="focusBookAuthor" class="text-xs text-stone-500">앙투안 드 생텍쥐페리</p>
+          </div>
+        </div>
+
+        <!-- 아이북 가독성 설정 바 -->
+        <div class="flex items-center gap-3">
+          
+          <!-- 글자 크기 조절 (가- / 가+) -->
+          <div class="flex items-center gap-1 bg-stone-100/90 px-2 py-1 rounded-full text-xs">
+            <span class="text-stone-400 text-[11px] px-1 hidden md:inline">글자</span>
+            <button onclick="app.changeFocusFontSize(-1)" class="p-1.5 hover:bg-white rounded-full transition-colors text-stone-700 font-bold" title="글자 작게">가-</button>
+            <span id="focusFontSizeLabel" class="text-[11px] font-medium text-stone-700 px-1.5">보통</span>
+            <button onclick="app.changeFocusFontSize(1)" class="p-1.5 hover:bg-white rounded-full transition-colors text-stone-700 font-bold" title="글자 크게">가+</button>
+          </div>
+
+          <!-- 배경 테마 (종이질감 / 세피아 / 세이지 / 다크모드) -->
+          <div class="flex items-center gap-1.5">
+            <button onclick="app.setFocusTheme('paper')" class="theme-focus-btn w-6 h-6 rounded-full bg-[#FAF7F2] border-2 border-stone-300 shadow-sm" title="종이 질감"></button>
+            <button onclick="app.setFocusTheme('sepia')" class="theme-focus-btn w-6 h-6 rounded-full bg-[#FBF2DB] border-2 border-amber-300 shadow-sm" title="부드러운 세피아"></button>
+            <button onclick="app.setFocusTheme('sage')" class="theme-focus-btn w-6 h-6 rounded-full bg-[#EFF6F1] border-2 border-emerald-300 shadow-sm" title="싱그러운 세이지"></button>
+            <button onclick="app.setFocusTheme('dark')" class="theme-focus-btn w-6 h-6 rounded-full bg-[#1C2029] border-2 border-stone-600 shadow-sm" title="차분한 밤하늘 (다크)"></button>
+          </div>
+
+          <!-- 음성 낭독 (TTS) 버튼 -->
+          <button id="focusTtsBtn" onclick="app.toggleFocusTTS()" class="touch-btn text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5">
+            <i data-lucide="volume-2" class="w-4 h-4 text-amber-600"></i>
+            <span id="focusTtsText" class="font-medium">구절 들려주기</span>
+          </button>
+
+        </div>
+
+      </div>
+    </nav>
+
+    <!-- 2분할 메인 레이아웃 (아이패드 가로: 5:7 좌우분할 / 세로: 상하분할) -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- ==========================================================
+           좌측: 책 일러스트 & 가독성 높은 큰 글씨의 원본 긴 문단
+           ========================================================== -->
+      <div class="lg:col-span-5 flex flex-col gap-5">
+        
+        <div class="paper-card p-6 sm:p-7">
+          <!-- 책 헤더 & 일러스트 영역 -->
+          <div id="focusCoverBox" class="rounded-2xl p-5 mb-5 flex items-center gap-4 bg-gradient-to-br from-amber-100 to-rose-200 shadow-inner">
+            <div id="focusCoverEmoji" class="text-4xl sm:text-5xl filter drop-shadow select-none">
+              🌹✨
+            </div>
+            <div>
+              <span id="focusCategoryBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/80 text-amber-900 mb-1 inline-block">
+                🌿 마음이 편안해지는
+              </span>
+              <h3 id="focusCardTitle" class="text-lg font-bold text-stone-900 leading-tight">
+                어린 왕자
+              </h3>
+              <p id="focusCardAuthor" class="text-xs text-stone-700">앙투안 드 생텍쥐페리</p>
+            </div>
+          </div>
+
+          <!-- 원본 긴 문단 읽기 영역 -->
+          <div class="mb-4">
+            <div class="flex items-center justify-between text-xs text-stone-400 mb-2">
+              <span class="font-bold flex items-center gap-1 text-stone-600">
+                <i data-lucide="bookmark" class="w-3.5 h-3.5 text-amber-600"></i> 원본 긴 구절
+              </span>
+              <span id="focusWordCountTarget" class="text-[11px]">권장 86단어</span>
+            </div>
+
+            <!-- 큰 글씨 원본 구절 본문 -->
+            <blockquote id="focusOriginalQuote" class="original-quote-box text-stone-800 px-1 py-1 font-serif leading-loose">
+              <!-- JS로 텍스트 바인딩 -->
+            </blockquote>
+          </div>
+
+          <!-- 추천인 & 추천 이유 -->
+          <div class="mt-4 pt-4 border-t border-stone-200 text-xs text-stone-600">
+            <div class="flex items-center gap-1.5 font-bold text-amber-900 mb-1">
+              <span id="focusRecommender">담임 선생님 🌸</span>
+              <span class="text-stone-400 font-normal">의 추천 이유</span>
+            </div>
+            <p id="focusRecommendReason" class="italic bg-amber-50/70 p-3 rounded-xl border border-amber-200/50 leading-relaxed text-stone-700">
+              <!-- JS 바인딩 -->
+            </p>
+          </div>
+
+        </div>
+
+        <!-- 아침 루틴 팁 -->
+        <div class="paper-card p-4 text-xs text-stone-500 bg-stone-50/60 flex items-start gap-2.5">
+          <span class="text-lg">💡</span>
+          <p class="leading-relaxed">
+            마음에 와닿는 문장을 입으로 소리 내어 낭독한 뒤, 오른쪽 줄노트에 마음을 담아 천천히 적어보세요.
+          </p>
+        </div>
+
+      </div>
+
+
+      <!-- ==========================================================
+           우측: 아이북 긴 글 필사 노트 (줄노트 대형 Textarea)
+           ========================================================== -->
+      <div class="lg:col-span-7 flex flex-col gap-4">
+        
+        <div class="paper-card p-6 sm:p-7">
+          
+          <!-- 입력 모드 탭 (타이핑 줄노트 / 손글씨 캔버스) -->
+          <div class="flex items-center justify-between pb-3 mb-4 border-b border-stone-200">
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-base text-stone-800 flex items-center gap-1.5">
+                <span>나의 아침 필사 노트</span>
+                <span class="text-lg">✍️</span>
+              </h3>
+            </div>
+
+            <div class="flex items-center bg-stone-100 p-1 rounded-xl text-xs">
+              <button id="noteTypeTypingBtn" onclick="app.switchNoteMode('typing')" class="px-3 py-1 rounded-lg font-bold transition-all bg-stone-800 text-white">
+                ⌨️ 타이핑 줄노트
+              </button>
+              <button id="noteTypeCanvasBtn" onclick="app.switchNoteMode('canvas')" class="px-3 py-1 rounded-lg font-medium text-stone-600 hover:bg-stone-200">
+                ✏️ 손글씨 패드
+              </button>
+            </div>
+          </div>
+
+          <!-- A. 타이핑 줄노트 모드 -->
+          <div id="typingNoteSection">
+            <!-- 대형 줄노트 Textarea 컨테이너 -->
+            <div class="ruled-textarea-container mb-3">
+              <textarea id="focusTextarea" class="ruled-textarea" 
+                        placeholder="여기를 터치하여 왼쪽의 문장을 정성껏 따라 적어보세요. 바른 마음과 함께 한 줄씩 채워가요..."
+                        oninput="app.handleNoteInput(this)"></textarea>
+            </div>
+
+            <!-- 실시간 카운트 통계 바 -->
+            <div class="bg-stone-50/90 rounded-2xl p-3 border border-stone-200 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-600 mb-4">
+              <div class="flex items-center gap-3">
+                <span>글자 수: <strong id="statCharCount" class="text-stone-900 font-bold">0</strong>자 (공백포함)</span>
+                <span class="text-stone-300">|</span>
+                <span>단어 수: <strong id="statWordCount" class="text-amber-800 font-bold">0</strong>단어</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span>필사 진행도:</span>
+                <div class="w-24 h-2 bg-stone-200 rounded-full overflow-hidden">
+                  <div id="statProgressBar" class="h-full bg-gradient-to-r from-amber-500 to-rose-500 w-0 transition-all"></div>
+                </div>
+                <strong id="statPercentText" class="text-rose-600 font-bold">0%</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- B. 아이패드 손글씨 캔버스 모드 -->
+          <div id="canvasNoteSection" class="hidden mb-4">
+            <div class="flex items-center justify-between bg-stone-50 p-2.5 rounded-xl border border-stone-200 mb-2 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="text-stone-500">펜 색상:</span>
+                <button onclick="app.setCanvasColor('#2D2825')" class="w-6 h-6 rounded-full bg-[#2D2825] ring-2 ring-amber-500"></button>
+                <button onclick="app.setCanvasColor('#1E40AF')" class="w-6 h-6 rounded-full bg-[#1E40AF]"></button>
+                <button onclick="app.setCanvasColor('#991B1B')" class="w-6 h-6 rounded-full bg-[#991B1B]"></button>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="app.clearCanvasPad()" class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 font-medium">지우기</button>
+              </div>
+            </div>
+            <div class="border-2 border-dashed border-stone-300 rounded-2xl overflow-hidden bg-white relative">
+              <canvas id="focusCanvasPad" class="w-full h-80 block"></canvas>
+            </div>
+          </div>
+
+          <!-- 학생 한 줄 소감 및 이름 입력 폼 -->
+          <div class="bg-amber-50/40 border border-amber-200/60 rounded-2xl p-4 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">내 이름 또는 번호 *</label>
+                <input type="text" id="studentNameInput" placeholder="예: 3반 민재 또는 예은이" required
+                       class="w-full px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">필사 후 한 줄 생각 (다짐) *</label>
+                <input type="text" id="studentReflectionInput" placeholder="이 문장을 쓰며 어떤 마음이 들었나요?" required
+                       class="w-full px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+              </div>
+            </div>
+
+            <!-- 제출 액션 버튼 -->
+            <div class="pt-2 flex items-center justify-between gap-3">
+              <span class="text-[11px] text-stone-400">
+                제출하면 우리 반 나무에 푸른 잎이 자라나요 🌱
+              </span>
+
+              <button onclick="app.submitTranscription()" class="touch-btn text-sm bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                <span>필사 제출하고 카드 받기</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+
+  <!-- ==========================================================
+       MODAL 1: 필사 완료 축하 & '나만의 필사 카드' (인쇄/이미지 다운로드)
+       ========================================================== -->
+  <div id="transcriptionCardModal" class="modal-overlay fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="modal-box paper-card max-w-2xl w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 bg-white">
+      
+      <!-- 상단 헤더 -->
+      <div class="flex items-center justify-between pb-3 border-b border-stone-200">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🎉</span>
+          <div>
+            <h3 class="text-lg font-bold text-stone-800">참 잘했어요! 나만의 필사 카드 완성</h3>
+            <p class="text-xs text-stone-500">정성껏 쓴 글이 예쁜 양장본 엽서 카드로 탄생했어요.</p>
+          </div>
+        </div>
+        <button onclick="app.closeCardModal()" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- 감성 엽서 스타일 '나만의 필사 카드' 영역 (캡처 및 인쇄 대상) -->
+      <div id="myTranscriptionCardPreview" class="my-6 p-6 sm:p-8 bg-[#FFFDF9] border border-amber-200/80 rounded-2xl shadow-sm relative">
+        <!-- 책갈피 장식 -->
+        <div class="absolute top-0 right-8 w-6 h-12 bg-amber-500 clip-bookmark"></div>
+
+        <div class="flex items-center justify-between text-xs text-stone-400 mb-4 pb-2 border-b border-stone-200/70">
+          <span class="font-bold text-amber-800 tracking-wider">🌿 마음 한 켠, 아침 필사</span>
+          <span id="cardDateText">2026.09.28</span>
+        </div>
+
+        <div class="mb-4">
+          <h4 id="cardBookTitle" class="text-xl font-serif font-bold text-stone-800">『어린 왕자』</h4>
+          <p id="cardBookAuthor" class="text-xs text-stone-500 mt-0.5">지은이: 앙투안 드 생텍쥐페리</p>
+        </div>
+
+        <!-- 학생이 직접 작성한 필사 본문 -->
+        <div class="bg-white/80 p-4 rounded-xl border border-stone-200/80 mb-4 shadow-inner">
+          <p id="cardWrittenText" class="font-serif text-stone-800 leading-relaxed text-sm sm:text-base whitespace-pre-line">
+            <!-- JS 입력 -->
+          </p>
+        </div>
+
+        <!-- 학생 소감 및 서명 -->
+        <div class="flex items-center justify-between pt-3 border-t border-stone-200/80 text-xs">
+          <div class="flex-1 mr-4">
+            <span class="text-stone-400 block text-[10px]">나의 아침 생각:</span>
+            <p id="cardReflectionText" class="font-medium text-stone-700 italic">
+              "마음이 참 따뜻해졌어요."
+            </p>
+          </div>
+          <div class="text-right">
+            <span class="text-stone-400 block text-[10px]">필사한 친구</span>
+            <span id="cardStudentName" class="font-bold text-stone-900 text-sm">3반 민재</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 모달 하단 버튼 액션 바 -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <button onclick="app.closeCardModal()" class="touch-btn text-xs text-stone-500 hover:bg-stone-100 px-4 py-2.5 rounded-xl">
+          닫기
+        </button>
+
+        <div class="flex items-center gap-2">
+          <!-- 이미지(PNG)로 저장하기 -->
+          <button onclick="app.downloadCardAsImage()" class="touch-btn text-xs sm:text-sm bg-stone-800 hover:bg-stone-900 text-white font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>이미지(PNG) 저장</span>
+          </button>
+          
+          <!-- 인쇄하기 -->
+          <button onclick="window.print()" class="touch-btn text-xs sm:text-sm bg-amber-500 hover:bg-amber-600 text-white font-bold px-5 py-2.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>예쁘게 인쇄하기</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ==========================================================
+       MODAL 2: [3. 나만의 보물 책 추천하기 (학생 & 교사)]
+       ========================================================== -->
+  <div id="recommendBookModal" class="modal-overlay fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="modal-box paper-card max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 bg-white">
+      
+      <!-- 모달 헤더 -->
+      <div class="flex items-center justify-between pb-3 border-b border-stone-200">
+        <div>
+          <h3 class="text-xl font-bold text-stone-800 flex items-center gap-2">
+            <span>나만의 보물 책 추천하기</span>
+            <span class="text-2xl">📚</span>
+          </h3>
+          <p class="text-xs text-stone-500">친구들과 함께 필사하고 싶은 멋진 책과 긴 문단을 추천해주세요.</p>
+        </div>
+        <button onclick="app.closeRecommendBookModal()" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- 추천 폼 -->
+      <form id="recommendBookForm" class="mt-5 space-y-4" onsubmit="app.handleNewBookSubmit(event)">
+        
+        <!-- 추천인 구분 (학생 / 선생님) -->
+        <div class="flex items-center gap-3 bg-stone-100 p-1 rounded-xl text-xs font-bold">
+          <label class="flex-1 text-center py-2 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-white has-[:checked]:text-stone-800 has-[:checked]:shadow-sm">
+            <input type="radio" name="newBookRole" value="학생" checked class="hidden">
+            ⭐ 학생 추천
+          </label>
+          <label class="flex-1 text-center py-2 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-white has-[:checked]:text-stone-800 has-[:checked]:shadow-sm">
+            <input type="radio" name="newBookRole" value="교사" class="hidden">
+            🌸 선생님 추천
+          </label>
+        </div>
+
+        <!-- 이름 -->
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">내 이름 또는 번호 *</label>
+          <input type="text" id="newBookRecommender" placeholder="예: 3반 김서윤" required
+                 class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+        </div>
+
+        <!-- 책 제목 & 저자 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">책 제목 *</label>
+            <input type="text" id="newBookTitle" placeholder="예: 마당을 나온 암탉" required
+                   class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">지은이 *</label>
+            <input type="text" id="newBookAuthor" placeholder="예: 황선미" required
+                   class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+          </div>
+        </div>
+
+        <!-- 분위기 태그 선택 -->
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">어울리는 분위기 태그 *</label>
+          <select id="newBookCategory" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-white">
+            <option value="comfort">🌿 마음이 편안해지는</option>
+            <option value="wisdom">💡 용기와 지혜</option>
+            <option value="adventure">🦁 모험과 도전</option>
+            <option value="humor">😄 웃음과 유머</option>
+            <option value="creativity">🎨 창의력과 상상</option>
+          </select>
+        </div>
+
+        <!-- 긴 필사 구절 (3~5문장 이상) -->
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">
+            함께 필사할 긴 구절 (3~5문장 이상의 깊은 문단) *
+          </label>
+          <textarea id="newBookQuote" rows="4" placeholder="책에서 감동받았던 3문장 이상의 긴 문단을 또박또박 적어주세요..." required
+                    class="w-full p-3.5 rounded-xl border border-stone-300 text-sm font-serif focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"></textarea>
+        </div>
+
+        <!-- 추천하는 이유 -->
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">이 책을 추천하는 이유 *</label>
+          <input type="text" id="newBookReason" placeholder="예: 주인공의 용기 있는 선택을 보며 큰 힘을 얻었어요." required
+                 class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+        </div>
+
+        <!-- 표지 상징 이모지 선택 -->
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">표지 상징 이모지</label>
+          <input type="text" id="newBookEmoji" placeholder="예: 🐔🌿 또는 🦁✨" value="📖✨"
+                 class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-sm">
+        </div>
+
+        <!-- 제출 버튼 -->
+        <div class="pt-3 flex items-center justify-end gap-2">
+          <button type="button" onclick="app.closeRecommendBookModal()" class="touch-btn text-xs text-stone-500 hover:bg-stone-100 px-4 py-2.5 rounded-xl">
+            취소
+          </button>
+          <button type="submit" class="touch-btn text-sm bg-gradient-to-r from-amber-600 to-rose-600 text-white font-bold px-6 py-2.5 rounded-xl shadow-md transition-all">
+            보물 책 등록하기 🎁
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- 전역 토스트 알림 -->
+  <div id="globalToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 z-50 pointer-events-none">
+    <div class="bg-stone-900/90 backdrop-blur-md text-white text-xs sm:text-sm font-medium px-5 py-3 rounded-full shadow-2xl flex items-center gap-2">
+      <span id="globalToastText">메시지</span>
+    </div>
+  </div>
+
+  <!-- 스크립트 연결 -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
